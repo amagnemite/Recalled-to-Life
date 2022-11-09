@@ -263,7 +263,7 @@ WaveSchedule {
 			Totalcount 56
 			Maxactive 4
 			Spawncount 2
-			WaitBetweenSpawns 5
+			WaitBetweenSpawns 4
 			
 			RandomChoice {
 				TFBot {

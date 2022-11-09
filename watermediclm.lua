@@ -47,7 +47,6 @@ function OnWaveStart(wave)
 				end
 			end, 0)
 		end
-		--OnGameTick = SpecificWaveGameTick -- need to have players in table to not instalose
 		OnPlayerConnected = SpecificPlayerConnected
 	end
 end
@@ -69,7 +68,6 @@ function CheckBotAggro(bot)
 	local tracetable = util.Trace(boteyetrace)
 	if tracetable.HitTexture == "ENCOUNTER/BARRIER_BLUE_DETAIL" then
 		--force bots to aggro on someone else if they're looking at someone outside a barrier
-		--botentity:BotCommand("stop interrupt action")
 		botentity:ChangeAttributes("changetarget")				
 	end
 end
@@ -77,13 +75,13 @@ end
 --mostly a lot of post wave fail/success cleanup
 function OnWaveInit(wave)
 	OnPlayerConnected = Nothing
-	--OnGameTick = Nothing
 	
 	currentwave = 0
 	shieldcount = 0
 
-	for _, atimer in pairs(timers) do
-		atimer = nil
+	for timername, timerid in pairs(timers) do	
+		timer.Stop(timerid)
+		timers[timername] = nil
 	end
 	
 	if wave == HUNT_WAVE then
@@ -114,6 +112,10 @@ function OnWaveInit(wave)
 	end)
 end
 
+function OnWaveSuccess(wave)
+	currentwave = 0
+end
+
 function OnPlayerDisconnected(player) 
 	players[player:GetHandleIndex()] = nil
 end
@@ -125,13 +127,11 @@ end
 function SpecificPlayerConnected(player)
 	local handle = player:GetHandleIndex()
 
-	if players[handle] == nil then
-		players[handle] = {}
-		players[handle].entity = player
-		players[handle].reanimstate = false
-		players[handle].reanimentity = nil
-		players[handle].reanimcount = 0
-	end
+	players[handle] = {}
+	players[handle].entity = player
+	players[handle].reanimstate = false
+	players[handle].reanimentity = nil
+	players[handle].reanimcount = 0
 end
 
 local function Nothing()
@@ -144,10 +144,6 @@ function OnGameTick()
 	end
 end
 
-function OnWaveSuccess(wave)
-	currentwave = 0
-end
-
 function SpecificWaveGameTick()
 	local alive = 0
 
@@ -158,12 +154,11 @@ function SpecificWaveGameTick()
 			--if ghost but doesn't have a reanim yet
 			CreateReanim(datatable)
 			BecomeGhost(p, datatable)
-		elseif datatable.reanimstate and datatable.reanimentity == nil then
+		elseif datatable.reanimstate and not datatable.reanimentity then
 			--if a reanim somehow gets destroyed, then force respawn the player
 			player:ForceRespawn()
 		elseif player:InCond(TF_COND_HALLOWEEN_GHOST_MODE) == 0 and player:IsAlive() then
 			--if alive/not ghost
-			--print("alive")
 			alive = alive + 1
 		end
 	end
@@ -261,14 +256,14 @@ function BecomeGhost(handle, datatable)
 					.. " -killlook -waituntildone -alwayslook"
 				--player targetname should still be set here
 				local bot = Entity(bothandle)
-				--print(interruptstring)
+				print(interruptstring)
 				bot:BotCommand(interruptstring)
 			end
 		end
 	end)
 end
 
-function FindMimickingBot(playerhandle) --this should be only fired if player is valid
+function FindMimickingBot(playerhandle) --this should be only fired if player is valid in the first place
 	for bothandle, pairedhandle in pairs(bots) do
 		if playerhandle == pairedhandle then
 			if Entity(bothandle):IsAlive() and IsValid(Entity(playerhandle)) then
@@ -340,14 +335,14 @@ function MimicPlayers()
 			local interruptstring = "interrupt_action -posent " .. p:GetName() .. " -lookposent " .. p:GetName() 
 			.. " -killlook -waituntildone -alwayslook"
 			
-			--print(interruptstring)
+			print(interruptstring)
 			bot:BotCommand(interruptstring)
 		end
 		
 		for _, item in pairs(p:GetAllItems()) do
 			if item:IsWearable() then
 				local botitem = bot:GiveItem(item:GetItemName())
-				if botitem ~= nil then --some items fail
+				if botitem then --some items fail
 					CopyAttribute("attach particle effect", item, botitem, true)
 					CopyAttribute("set item tint RGB", item, botitem, true)
 					CopyAttribute("set item tint RGB 2", item, botitem, true) --i think this is for team color paints?
