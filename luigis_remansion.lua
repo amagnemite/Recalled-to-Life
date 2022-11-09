@@ -162,13 +162,23 @@ function BoughtMedibeam(damage, activator)
 			end
 		end
 		
-		if medigun.m_bHolstered == 0 and key == IN_RELOAD then
+		if key == IN_RELOAD and medigun.m_bHolstered == 0 then
 			if medigun:GetItemName() == "The Vaccinator" and medibeams[medigunhandle] ~= nil then
 			--if vacc, remove the passive effect on bot
 			--chargeresisttype is 0-2
 				medibeams[medigunhandle]:RemoveCond(TF_COND_MEDIGUN_SMALL_BULLET_RESIST + medigun.m_nChargeResistType)
 			end
 		end
+		
+		-- if key == IN_ATTACK2 and medigun.m_bHolstered == 0 then
+			-- if medigun:GetItemName() == "The Vaccinator" and medibeams[medigunhandle] ~= nil then
+			-- --if vacc, remove the passive effect on bot
+			-- --chargeresisttype is 0-2
+				-- timer.Simple(.1, function()
+					-- target:RemoveCond(TF_COND_MEDIGUN_UBER_BULLET_RESIST + medigun.m_nChargeResistType)
+				-- end)
+			-- end
+		-- end
 	end)
 	
 	activator:AddCallback(ON_KEY_RELEASED, function(_, key)
