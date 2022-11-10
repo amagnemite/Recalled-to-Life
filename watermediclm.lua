@@ -252,12 +252,7 @@ function BecomeGhost(handle, datatable)
 		if currentwave == BOSS_WAVE then
 			local bothandle = FindMimickingBot(handle)
 			if bothandle then
-				local interruptstring = "interrupt_action -posent " .. player:GetName() .. " -lookposent " .. player:GetName() 
-					.. " -killlook -waituntildone -alwayslook"
-				--player targetname should still be set here
-				local bot = Entity(bothandle)
-				print(interruptstring)
-				bot:BotCommand(interruptstring)
+				SetBotAggroOnPlayer(player, bothandle)
 			end
 		end
 	end)
@@ -271,6 +266,18 @@ function FindMimickingBot(playerhandle) --this should be only fired if player is
 			end
 		end
 	end
+end
+
+function SetBotAggroOnPlayer(player, bothandle)
+	local interruptstring = "interrupt_action -posent " .. player:GetName() .. " -lookposent " .. player:GetName() 
+		.. " -killlook -waituntildone -alwayslook"
+	local bot = Entity(bothandle)
+	local botPrimary = bot:GetPlayerItemBySlot(0)
+	if botPrimary and botPrimary:GetClassname() == "tf_weapon_crossbow" then
+		interruptstring = interruptstring .. " -distance 1500"
+	end
+	print(interruptstring)
+	bot:BotCommand(interruptstring)
 end
 
 function RemoveCallbacks(player, callbacks)
@@ -332,11 +339,7 @@ function MimicPlayers()
 		p:SetName(p:GetPlayerName())
 		
 		if p:InCond(TF_COND_HALLOWEEN_GHOST_MODE) == 0 and p:IsAlive() then --don't aggro lock if player isn't alive
-			local interruptstring = "interrupt_action -posent " .. p:GetName() .. " -lookposent " .. p:GetName() 
-			.. " -killlook -waituntildone -alwayslook"
-			
-			print(interruptstring)
-			bot:BotCommand(interruptstring)
+			SetBotAggroOnPlayer(p, bot:GetHandleIndex())
 		end
 		
 		for _, item in pairs(p:GetAllItems()) do
@@ -359,6 +362,7 @@ function MimicPlayers()
 		--pair bot handle to player handle
 		
 		bot:SetAttributeValue("max health additive bonus", perhp)
+		bot:SetAttributeValue("mod weapon blocks healing", 1)
 		bot.m_bIsMiniBoss = true
 	end
 	
