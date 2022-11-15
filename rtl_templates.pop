@@ -249,6 +249,7 @@ WaveSchedule {
 						AimTarget RandomEnemy
 						KillAimTarget 1
 						WaitUntilDone 1
+						AlwaysLook 1
 						OnDoneChangeAttributes "default"
 					}
 				}
