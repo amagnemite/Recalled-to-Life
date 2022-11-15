@@ -1,77 +1,39 @@
 local medibeams = {}
-local red = {}
 
-function RedPlayers()
-	for _, v in pairs(ents.GetAllPlayers()) do
-		if v.m_iTeamNum == 2 then
-			red[v:GetHandleIndex()] = v
-		end
-	end
-end
+-- function medigunTick()
+	-- for medigunhandle, botentity in pairs(medibeams) do
+		-- local medigun = Entity(medigunhandle)
+		-- local player = medigun.m_hOwner
 
-function medigunTick()
-	-- for _, v in pairs(red) do
-		-- if v:InCond(TF_COND_MEDIGUN_SMALL_BULLET_RESIST) == 1 then
-			-- print(v:GetPlayerName() .. " " .. TickCount())
+		-- --medigun.m_hHealingTarget = botentity --keep beam force attached
+	
+		-- if player.m_bUsingActionSlot == 1 and medigun:GetAttributeValue("canteen specialist") then
+		-- --if player presses h and has can spec while healing a bot, remove cond on bot
+			-- botentity:RemoveCond(TF_COND_INVULNERABLE_USER_BUFF)
+			-- botentity:RemoveCond(TF_COND_CRITBOOSTED_USER_BUFF)
+		-- end
+		
+		-- if not botentity:IsAlive() then --bot was killed
+			-- player:SetAttributeValue("no_attack", 1)
+			-- timer.Simple(.1, function()
+				-- player:SetAttributeValue("no_attack", nil)
+			-- end)
+			-- ResetMedigun(medigun, medigunhandle)
+		-- elseif not data.isConnected then --in very first tick, m_bHealing is false so can't check it
+			-- data.isConnected = true
+			-- if medigun.m_bAttacking == 0 or medigun.m_bHolstered == 1 or player:InCond(TF_COND_TAUNTING) == 1 then
+				-- ResetMedigun(medigun, medigunhandle)
+			-- end
+		-- else
+			-- if medigun.m_bHealing == 0 or medigun.m_bHolstered == 1 or player:InCond(TF_COND_TAUNTING) == 1 then
+				-- ResetMedigun(medigun, medigunhandle)
+			-- end
 		-- end
 	-- end
+-- end
 
-	for medigunhandle, data in pairs(medibeams) do
-		local medigun = Entity(medigunhandle)
-		local player = medigun.m_hOwner
-		
-		if data.isHolding then --player is holding attack down, looking for a target
-			if medigun.m_bHolstered == 0 and medigun.m_bAttacking == 1 
-				and player.m_bRageDraining == 0 and player:InCond(TF_COND_TAUNTING) == 0 then
-				
-				if medigun.m_hHealingTarget and medigun.m_hHealingTarget.m_iTeamNum == 2 then --healing a friendly
-					print(player:GetPlayerName() .. " " .. CurTime() .. " " .. TickCount() .. " started healing, stopping tick")
-					medibeams[medigunhandle] = nil
-				else 
-					local targetedEntity = EyeTrace(player, data.connectTrace)
-				
-					if targetedEntity and targetedEntity:IsPlayer() and targetedEntity.m_iTeamNum == 3 then 
-						--hit a blu bot
-						print(player:GetPlayerName() .. " " .. CurTime() .. " " .. TickCount() .. " started damaging, stopping tick")
-						ConnectMedigun(player, data.isQuickFix, data.damage, medigun, medigunhandle, targetedEntity)
-					end
-				end
-			else --if shield is draining or medigun is holstered, stop looking for a target
-				--print(player:GetPlayerName() .. " " .. CurTime() .. " " .. TickCount() .. " released, stopping")
-				medibeams[medigunhandle] = nil
-			end
-		else --player has a bot target already
-			local botentity = data.entity
-			medigun.m_hHealingTarget = botentity --keep beam force attached
-		
-			if player.m_bUsingActionSlot == 1 and medigun:GetAttributeValue("canteen specialist") then
-			--if player presses h and has can spec while healing a bot, remove cond on bot
-				botentity:RemoveCond(TF_COND_INVULNERABLE_USER_BUFF)
-				botentity:RemoveCond(TF_COND_CRITBOOSTED_USER_BUFF)
-			end
-			
-			if not botentity:IsAlive() then --bot was killed
-				player:SetAttributeValue("no_attack", 1)
-				timer.Simple(.1, function()
-					player:SetAttributeValue("no_attack", nil)
-				end)
-				ResetMedigun(medigun, medigunhandle)
-			elseif not data.isConnected then --in very first tick, m_bHealing is false so can't check it
-				data.isConnected = true
-				if medigun.m_bAttacking == 0 or medigun.m_bHolstered == 1 or player:InCond(TF_COND_TAUNTING) == 1 then
-					ResetMedigun(medigun, medigunhandle)
-				end
-			else
-				if medigun.m_bHealing == 0 or medigun.m_bHolstered == 1 or player:InCond(TF_COND_TAUNTING) == 1 then
-					ResetMedigun(medigun, medigunhandle)
-				end
-			end
-		end
-	end
-end
-
+--remove vaccinator ubers from bots
 local chargeDeployedCallback = AddEventCallback("player_chargedeployed", function(eventTable)
-	--remove vaccinator ubers from bots
 	local medic = ents.GetPlayerByUserId(eventTable.userid)
 	local target = ents.GetPlayerByUserId(eventTable.targetid)
 	local medigun = medic:GetPlayerItemBySlot(1)
@@ -133,38 +95,24 @@ function BoughtMedibeam(damage, activator)
 		end
 	end)
 	
-	-- local player_healedcallback = AddEventCallback("player_healed", function(eventTable)
-		-- print("player_healed")
-		-- --for k, v in pairs(eventTable) do
-		-- --	print(k .. " " .. v)
-		-- --end
-	-- end)
-	
 	activator:AddCallback(ON_KEY_PRESSED, function(_, key)
 		if medigun.m_bHolstered == 0 and key == IN_ATTACK then
-			--print("--")
-			--print("current time " .. CurTime() .. " " .. TickCount() .. " pressed")
+			print("current time " .. TickCount() .. " pressed")
 			local targetedEntity = 0
 			
 			if timers[medigunhandle] then --reset the damage timer if it was already ticking
 				timer.Stop(timers[medigunhandle])
 				timers[medigunhandle] = nil
 			end
+			
+			if timers[handle] then
+				timer.Stop(timers[handle])
+				timers[handle] = nil
+			end
 						
 			-- if medibeams[medigunhandle] then --if we were already connected to bot (click to heal), disconnect before doing anything else
 				-- ResetMedigun(medigun, medigunhandle)
 				-- print("current time " .. CurTime() .. " " .. TickCount() .. " cleared medigun")
-			-- end
-			
-			-- for _, player in pairs(ents.GetAllPlayers()) do
-				-- if player.m_iTeamNum == 2 then
-					-- print(player:GetPlayerName())
-					-- for i = 1, #player.m_ConditionData do --length of condition data
-						-- if player.m_ConditionData[i] ~= nil then
-							-- print(player.m_ConditionData[i])
-						-- end
-					-- end
-				-- end
 			-- end
 			
 			if medigun.m_hHealingTarget and medigun.m_hHealingTarget.m_iTeamNum == 2 then
@@ -175,13 +123,36 @@ function BoughtMedibeam(damage, activator)
 			
 				if targetedEntity and targetedEntity:IsPlayer() and targetedEntity.m_iTeamNum == 3 then
 					ConnectMedigun(activator, isQuickFix, DAMAGE_PER_HIT, medigun, medigunhandle, targetedEntity)	
+					
 				else --if trace doesn't hit, start hold timer
-				
-					medibeams[medigunhandle] = {}
-					medibeams[medigunhandle].isHolding = true
-					medibeams[medigunhandle].isQuickFix = isQuickFix
-					medibeams[medigunhandle].damage = DAMAGE_PER_HIT
-					medibeams[medigunhandle].connectTrace = connectTrace
+					if not timers[name] then
+						timers[name] = timer.Create(.014, function() --run a trace every .1s until we hit something or key is released
+							if medigun.m_bHolstered == 0 and medigun.m_bAttacking == 1 
+								and activator.m_bRageDraining == 0 and activator:InCond(TF_COND_TAUNTING) == 0 then
+								--print("hold timer")
+								
+								if medigun.m_hHealingTarget and medigun.m_hHealingTarget.m_iTeamNum == 2 then --healing a friendly
+									print(activator:GetPlayerName() .. " " .. TickCount() .. " started healing, stopping tick")
+									timer.Stop(timers[name])
+									timers[name] = nil
+								else 
+									local targetedEntity = EyeTrace(activator, connectTrace)
+								
+									if targetedEntity and targetedEntity:IsPlayer() and targetedEntity.m_iTeamNum == 3 then 
+										--hit a blu bot
+										print(activator:GetPlayerName() .. " " .. TickCount() .. " started damaging, stopping tick")
+										timer.Stop(timers[name])
+										timers[name] = nil
+										ConnectMedigun(activator, isQuickFix, DAMAGE_PER_HIT, medigun, medigunhandle, targetedEntity)
+									end
+								end
+							else --if shield is draining or medigun is holstered, stop looking for a target
+								print(activator:GetPlayerName() .. " " .. TickCount() .. " released, stopping")
+								timer.Stop(timers[name])
+								timers[name] = nil
+							end
+						end, 0)
+					end
 				end
 			end
 		end
@@ -222,7 +193,7 @@ function EyeTrace(player, connectTrace, targetedEntity) --trace from player's ey
 				table.insert(filterEnts, p)
 			end
 		end
-		connectTrace.endpos = targetedEntity:GetAbsOrigin() + Vector(0, 0, 70)
+		--connectTrace.endpos = targetedEntity:GetAbsOrigin() + Vector(0, 0, 70)
 		--70 is avg of eye heights, might be a bit over on short classes and bit under on tall classes
 	else
 		table.insert(filterEnts, player) --need to filter out player if using filter
@@ -269,17 +240,11 @@ function ConnectMedigun(player, isQuickFix, damage, medigun, medigunhandle, targ
 	}
 	local ATTRIBUTENAME = "charged airblast"
 	
-	--print("current time " .. CurTime() .. " " .. TickCount() .. " connecting")
+	print("current time " .. " " .. TickCount() .. " connecting")
 	
 	medigun.m_hLastHealingTarget = nil --no cross team flashing
-	medibeams[medigunhandle] = {}
-	medibeams[medigunhandle].isHolding = false
-	if medibeams[medigunhandle].entity ~= targetedEntity then --if same target, don't reset connected flag
-		medibeams[medigunhandle].isConnected = false
-	else
-		medibeams[medigunhandle].isConnected = true
-	end
-	medibeams[medigunhandle].entity = targetedEntity 
+	--medibeams[medigunhandle] = targetedEntity
+	CheckMedigun(medigunhandle, targetedEntity)
 	
 	--damage bot every .25s 
 	timers[medigunhandle] = timer.Create(.25, function()
@@ -289,30 +254,80 @@ function ConnectMedigun(player, isQuickFix, damage, medigun, medigunhandle, targ
 		
 		if dist < 540 and player.m_bRageDraining == 0 then --only damage if player is in range + not shielding
 			local tracedEntity = EyeTrace(player, connectTrace, targetedEntity)
+			--print("traced to " .. tostring(tracedEntity) .. ", targeted " .. tostring(targetedEntity))
 			
-			if tracedEntity == targetedEntity then --unobstructed view of bot?
+			--if tracedEntity == targetedEntity then --unobstructed view of bot?
 				if isQuickFix and medigun.m_bChargeRelease == 1 then
 					damageInfo.Damage = damage * healrate * (.75 + .25 * medigun:GetAttributeValue(ATTRIBUTENAME))
 				elseif medigun:GetItemName() == "The Kritzkrieg" and medigun.m_bChargeRelease == 1 then
 					damageInfo.Damage = damage * 2
 				end
 				targetedEntity:TakeDamage(damageInfo)
-			else
-				ResetMedigun(medigun, medigunhandle) --otherwise disconnect
-			end
+			--else
+			--	ResetMedigun(medigun, medigunhandle) --otherwise disconnect
+			--end
 		else
 			ResetMedigun(medigun, medigunhandle) --need to force disconnect here due to hold to heal
 		end
 	end, 0)
 end
 
-function ResetMedigun(medigun, medigunhandle) --reset medigun to defaultish state once we lose target
+--check if medigun should still be attached to bot
+function CheckMedigun(medigunhandle, botentity)
+	local medigun = Entity(medigunhandle)
+	local player = medigun.m_hOwner
+	local handle = player:GetHandleIndex()
+
+	medigun.m_hHealingTarget = botentity
+	
+	timers[handle] = timer.Create(.014, function()
+		print("current time " .. TickCount() .. " check timer")
+	
+		if player.m_bUsingActionSlot == 1 and medigun:GetAttributeValue("canteen specialist") then
+		--if player presses h and has can spec while healing a bot, remove cond on bot
+			botentity:RemoveCond(TF_COND_INVULNERABLE_USER_BUFF)
+			botentity:RemoveCond(TF_COND_CRITBOOSTED_USER_BUFF)
+		end
+		
+		if not botentity:IsAlive() then --bot was killed
+			ResetMedigun(medigun, medigunhandle)
+			player:SetAttributeValue("no_attack", 1)
+			timer.Simple(.1, function()
+				player:SetAttributeValue("no_attack", nil)
+			end)
+		--elseif firstTick then --in very first tick, m_bHealing is false so can't check it
+		elseif medigun.m_bHealing == 0 or medigun.m_bHolstered == 1 or player:InCond(TF_COND_TAUNTING) == 1 then
+			ResetMedigun(medigun, medigunhandle)
+		elseif medigun.m_hHealingTarget ~= botentity then
+			print("target mismatch, stopping")
+			if timers[medigunhandle] then
+				timer.Stop(timers[medigunhandle])
+				timers[medigunhandle] = nil
+			end
+			if timers[handle] then
+				timer.Stop(timers[handle])
+				timers[handle] = nil
+			end
+		end
+		
+		medigun.m_hHealingTarget = botentity --keep beam force attached
+	end, 0)
+end
+
+--reset medigun to defaultish state once we lose target
+function ResetMedigun(medigun, medigunhandle)
+	local player = medigun.m_hOwner
 	medibeams[medigunhandle] = nil
 	medigun.m_hHealingTarget = nil
 	medigun.m_hLastHealingTarget = nil --might not be necessary
+	medigun.m_bAttacking = 0
 	if timers[medigunhandle] then
 		timer.Stop(timers[medigunhandle])
 		timers[medigunhandle] = nil
+	end
+	if timers[player:GetHandleIndex()] then
+		timer.Stop(timers[player:GetHandleIndex()])
+		timers[player:GetHandleIndex()] = nil
 	end
 end
 
