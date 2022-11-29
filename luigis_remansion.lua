@@ -260,29 +260,24 @@ function ConnectMedigun(player, isQuickFix, damage, medigun, medigunhandle, targ
 						player:SetAttributeValue("no_attack", nil)
 					end)
 					barrierCounter = 0 --don't think this matters since timer dies anyway
-				else
-					if isQuickFix and medigun.m_bChargeRelease == 1 then
-						damageInfo.Damage = damage * healrate * (.75 + .25 * medigun:GetAttributeValue(ATTRIBUTENAME))
-						if targetedEntity:GetConditionProvider(TF_COND_MEGAHEAL) == player then --occasionally no kb gets applied to bot
-							targetedEntity:RemoveCond(TF_COND_MEGAHEAL)
-						end
-					elseif medigun:GetItemName() == "The Kritzkrieg" and medigun.m_bChargeRelease == 1 then
-						damageInfo.Damage = damage * 2
-					end
-					targetedEntity:TakeDamage(damageInfo)
 				end
 			else 
 				barrierCounter = 0
+			end
+			
+			if barrierCounter < 4 then
+				damageInfo.Damage = damage * healrate
 				if isQuickFix and medigun.m_bChargeRelease == 1 then
-					damageInfo.Damage = damage * healrate * (.75 + .25 * medigun:GetAttributeValue(ATTRIBUTENAME))
-					if targetedEntity:GetConditionProvider(TF_COND_MEGAHEAL) == player then
+					damageInfo.Damage = damageInfo.Damage * (.75 + .25 * medigun:GetAttributeValue(ATTRIBUTENAME))
+					if targetedEntity:GetConditionProvider(TF_COND_MEGAHEAL) == player then --occasionally no kb gets applied to bot
 						targetedEntity:RemoveCond(TF_COND_MEGAHEAL)
 					end
 				elseif medigun:GetItemName() == "The Kritzkrieg" and medigun.m_bChargeRelease == 1 then
-					damageInfo.Damage = damage * 2
+					damageInfo.Damage = damageInfo.Damage * 2
 				end
 				targetedEntity:TakeDamage(damageInfo)
 			end
+			
 			-- else --if trace was blocked
 				-- ResetMedigun(medigun, medigunhandle)
 				-- player:SetAttributeValue("no_attack", 1)
