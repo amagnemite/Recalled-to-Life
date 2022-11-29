@@ -1,9 +1,3 @@
-//an all medic mission by timey
-//w1 - an introductory hill only wvae
-//w2-4 - mvm business as usual
-//w5 - an inversion
-//w6 - boss wave
-
 #base robot_giant.pop
 #base robot_standard.pop
 #base rtl_templates.pop
@@ -13,12 +7,17 @@ WaveSchedule {
 	StartingCurrency 950
 	RespawnWaveTime 2
 	CanBotsAttackWhileInSpawnRoom no
+	
 	HealOnKillOverhealMelee 1
 	NoRomevisionCosmetics 1
 	NoMissionInfo 1
+	ForceHoliday 2
+	NoHolidayPickups 1
+	NoCritPumpkin 1
+	NoThrillerTaunt 1
 	
 	LuaScriptFile "scripts/watermedic.lua"
-	//LuaScriptFile "scripts/luigis_remansion.lua"
+	LuaScriptFile "scripts/luigis_remansion.lua"
 	
 	PrecacheModel "models/props_mvm/mvm_comically_small_player_shield.mdl"
 	
@@ -46,7 +45,7 @@ WaveSchedule {
 			Cost 400
 			AllowPlayerClass Medic
 			AllowedWeapons {
-				Slot Primary
+				Classname tf_weapon_syringegun_medic
 			}
 		}
 		Upgrade {
@@ -57,6 +56,7 @@ WaveSchedule {
 			Cost 250
 			AllowPlayerClass Medic
 			AllowedWeapons {
+				Classname tf_weapon_crossbow
 				Slot Melee
 			}
 			DisallowedWeapons {
@@ -120,31 +120,101 @@ WaveSchedule {
 				ItemName "The Solemn Vow"
 			}
 		}
-		//vacuummedibeam {
-		//	Name "Vacuum attachment"
-		//	Description "Drain the health of bots via medibeam. Disconnects if shield is activated"
-		//	Attribute "charged airblast"
-		//	Cap 1
-		//	Increment 1
-		//	Cost 400
+		VacuumMedibeam {
+			Name "Vacuum attachment"
+			Description "Medibeam can now target bots and damage them. Disconnects if shield is activated. Damage increases with more Healing Mastery."
+			Attribute "mod see enemy health"
+			Cap 1
+			Increment 1
+			Cost 400
 			
-		//	AllowedWeapons {
-		//		ClassName "TF_WEAPON_MEDIGUN"
-		//	}
+			AllowedWeapons {
+				ClassName "TF_WEAPON_MEDIGUN"
+			}
+			DisallowedWeapons {
+				ItemName "The Quick-Fix"
+				ItemName "The Kritzkrieg"
+			}
+					
+			SecondaryAttributes
+			{
+				"special item description" "Medibeam can now target bots and damage them. Disconnects if shield is activated" 
+				"special item description 2" "Damage increases with more Healing Mastery"
+			}
 			
-		//	SecondaryAttributes
-		//	{
-		//		"special item description" "Drain the health of bots via medibeam. Disconnects if shield is activated" 
-		//		"special item description 2" "Damage increases with more Healing Mastery"
-		//	}
+			OnApply {
+				Output "popscript,$BoughtMedibeam,30,0"
+			}
+			OnDowngrade {
+				Output "popscript,$RefundedMedibeam,,0"
+			}
+		}
+		VacuumMedibeamKritz {
+			Name "Vacuum attachment"
+			Description "Medibeam can now target bots and damage them. Disconnects if shield is activated. Damage increases with more Healing Mastery."
+			Attribute "mod see enemy health"
+			Cap 1
+			Increment 1
+			Cost 400
 			
-		//	OnApply {
-		//		Output "popscript,$BoughtMedibeam,,0"
-		//	}
-		//	OnDowngrade {
-		//		Output "popscript,$RefundedMedibeam,,0"
-		//	}
-		//}
+			AllowedWeapons {
+				ItemName "The Kritzkrieg"
+			}
+					
+			SecondaryAttributes
+			{
+				"special item description" "Medibeam can now target bots and damage them. Disconnects if shield is activated" 
+				"special item description 2" "Damage increases with more Healing Mastery"
+				"special item description 3" "Damage is doubled during a uber."
+			}
+			
+			OnApply {
+				Output "popscript,$BoughtMedibeam,30,0"
+			}
+			OnDowngrade {
+				Output "popscript,$RefundedMedibeam,,0"
+			}
+		}
+		VacuumMedibeamQF {
+			Name "Vacuum attachment"
+			Description "Medibeam can now target bots and damage them. Disconnects if shield is activated. Damage increases with more Healing Mastery."
+			Attribute "mod see enemy health"
+			Cap 1
+			Increment 1
+			Cost 600
+			
+			AllowedWeapons {
+				ItemName "The Quick-Fix"
+			}
+					
+			SecondaryAttributes
+			{
+				"special item description" "Medibeam can now target bots and damage them. Disconnects if shield is activated" 
+				"special item description 2" "Damage increases with more Healing Mastery"
+			}
+			
+			OnApply {
+				Output "popscript,$BoughtMedibeam,30,0"
+			}
+			OnDowngrade {
+				Output "popscript,$RefundedMedibeam,,0"
+			}
+		}
+		VacuumQFUberDamage {
+			Name "25% Extra damage during uber"
+			Description "Medibeam does +25% extra damage during a uber."
+			Attribute "mod see enemy health"
+			Cap 9
+			Increment 1
+			Cost 400
+			
+			AllowedWeapons {
+				ItemName "The Quick-Fix"
+			}
+			RequiredUpgrade {
+				Upgrade "VacuumMedibeamQF"
+			}
+		}
 	}
 
 	Mission {
@@ -264,10 +334,10 @@ WaveSchedule {
 			Where spawnbot_entrance
 			WaitForAllDead "w1c"
 			TotalCount 12
-			MaxActive 6
+			MaxActive 3
 			SpawnCount 3
 			WaitBeforeStarting 5
-			WaitBetweenSpawns 15
+			//WaitBetweenSpawns 15
 			
 			Squad {
 				TFBot {
@@ -393,6 +463,7 @@ WaveSchedule {
 					Class Soldier
 					Skill Normal
 					Item "The Cow Mangler 5000"
+					Attributes HoldFireUntilFullReload
 				}
 				TFBot {
 					Template T_TFBot_Medic_SlowRecharge
@@ -428,7 +499,7 @@ WaveSchedule {
 			Name "w2e"
 			Where spawnbot
 			Totalcount 4
-			Maxactive 2
+			Maxactive 1
 			Spawncount 1
 			WaitForAllSpawned "w2b"
 			TotalCurrency 400
@@ -536,7 +607,7 @@ WaveSchedule {
 			Name "w3c"
 			Where spawnbot
 			WaitForAllDead "w3a"
-			TotalCount 18
+			TotalCount 18 //24
 			MaxActive 6
 			SpawnCount 6
 			
@@ -676,14 +747,13 @@ WaveSchedule {
 			TotalCount 4
 			MaxActive 4
 			SpawnCount 1
-			WaitBeforeStarting 1
 			WaitBetweenSpawns 15
 			TotalCurrency 600
 			
 			TFBot {
 				Template T_TFBot_Giant_Scout
 				CharacterAttributes {
-					"move speed penalty" .875
+					"move speed bonus" .875
 				}
 			}
 		}
@@ -736,8 +806,8 @@ WaveSchedule {
 			Where spawnbot_right
 			TotalCount 30
 			MaxActive 10
-			SpawnCount 2
-			WaitBetweenSpawns 4
+			SpawnCount 5
+			WaitBetweenSpawns 10
 			WaitForAllDead "w3c"
 			
 			TFBot {
@@ -769,7 +839,7 @@ WaveSchedule {
 		}
 	}
 	
-	Wave { //w5, hunt mode, $1250
+	Wave { //w4, hunt mode, $1250
 		InitWaveOutput {
 			Target altmode_prewave_relay
 			Action Trigger
@@ -915,9 +985,9 @@ WaveSchedule {
 		WaveSpawn { //engineer
 			Name "w4b"
 			Where spawnbot_roof
-			TotalCount 4
-			MaxActive 4
-			SpawnCount 4
+			TotalCount 5
+			MaxActive 5
+			SpawnCount 5
 			WaitForAllDead "w4a"
 			TotalCurrency 350
 			
@@ -1020,14 +1090,27 @@ WaveSchedule {
 					Item "The Dragon's Fury"
 					Template noaggrooutsidebarrier
 				}
+				TFBot {
+					Class Pyro
+					Name "Dragon's Fury Pyro"
+					ClassIcon pyro_dragon_fury_swordstone
+					Skill Hard
+					Health 1750
+					Scale 1.5
+					MaxVisionRange 800
+					Action Passive
+					WeaponRestrictions PrimaryOnly
+					Item "The Dragon's Fury"
+					Template noaggrooutsidebarrier
+				}
 			}
 		}
 		WaveSpawn { //soldier
 			Name "w4c"
 			Where spawnbot_roof
-			TotalCount 4
-			MaxActive 4
-			SpawnCount 4
+			TotalCount 6
+			MaxActive 6
+			SpawnCount 6
 			WaitForAllDead "w4b"
 			TotalCurrency 200
 			
@@ -1041,7 +1124,7 @@ WaveSchedule {
 			
 				TFBot {
 					Class Soldier
-					Name "Giant Burst Fire Soldier"
+					Name "Giant Burst Soldier"
 					ClassIcon soldier_spammer
 					Health 3800
 					Skill Expert
@@ -1075,6 +1158,23 @@ WaveSchedule {
 					Action Passive
 					Template noaggrooutsidebarrier
 				}
+				TFBot {
+					Template T_TFBot_Giant_Soldier_Spammer
+					Name "Rapid Fire Bison"
+					ClassIcon soldier_bison_spammer
+					Item "The Righteous Bison"
+					WeaponRestrictions SecondaryOnly
+					Scale 1.5
+					Health 1500
+					Skill Expert
+					Action Passive
+					Template noaggrooutsidebarrier
+					ItemAttributes {
+						ItemName "The Righteous Bison"
+						"faster reload rate" -0.8
+						"fire rate bonus" 0.5
+					}
+				}
 			}
 		}
 		WaveSpawn { //heavy
@@ -1105,7 +1205,7 @@ WaveSchedule {
 					Item "Fists of Steel"
 					Attributes MiniBoss
 					Action Passive
-					Template noaggrooutsidebarrier
+					Template NoAggroOutsideBarrier
 					ItemAttributes
 					{
 						ItemName "Fists of Steel"
@@ -1347,11 +1447,11 @@ WaveSchedule {
 			name "w5b"
 			Where spawnbot_roof
 			Support Limited
-			TotalCount 25 //25
-			MaxActive 10 //10
-			SpawnCount 5 //5
+			TotalCount 25
+			MaxActive 10
+			SpawnCount 5
 			WaitBeforeStarting 3
-			WaitBetweenSpawns 5
+			WaitBetweenSpawns 3
 			TotalCurrency 2400
 			HideIcon 1
 		
@@ -1406,9 +1506,9 @@ WaveSchedule {
 			Where spawnbot
 			WaitForAllDead "w5b"
 			Support Limited
-			TotalCount 6
-			MaxActive 6
-			SpawnCount 6
+			TotalCount 9
+			MaxActive 9
+			SpawnCount 9
 			HideIcon 1
 			
 			Squad {

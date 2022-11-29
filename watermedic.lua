@@ -47,7 +47,6 @@ function OnWaveStart(wave)
 				end
 			end, 0)
 		end
-		--OnGameTick = SpecificWaveGameTick -- need to have players in table to not instalose
 		OnPlayerConnected = SpecificPlayerConnected
 	end
 end
@@ -69,7 +68,6 @@ function CheckBotAggro(bot)
 	local tracetable = util.Trace(boteyetrace)
 	if tracetable.HitTexture == "ENCOUNTER/BARRIER_BLUE_DETAIL" then
 		--force bots to aggro on someone else if they're looking at someone outside a barrier
-		botentity:BotCommand("stop interrupt action")
 		botentity:ChangeAttributes("changetarget")				
 	end
 end
@@ -77,13 +75,13 @@ end
 --mostly a lot of post wave fail/success cleanup
 function OnWaveInit(wave)
 	OnPlayerConnected = Nothing
-	--OnGameTick = Nothing
 	
 	currentwave = 0
 	shieldcount = 0
 
-	for _, atimer in pairs(timers) do
-		atimer = nil
+	for timername, timerid in pairs(timers) do	
+		timer.Stop(timerid)
+		timers[timername] = nil
 	end
 	
 	if wave == HUNT_WAVE then
@@ -96,22 +94,35 @@ function OnWaveInit(wave)
 		end)
 	end
 
-	timer.Simple(2, function()
-		for _, p in pairs(ents.GetAllPlayers()) do
-			if p:IsRealPlayer() then
-				p:SetCustomModel("") --sometimes ghost model gets stuck
-				p:SetAttributeValue("min respawn time", nil)
-				if wave == HUNT_WAVE then
-					local spawn = ents.FindByName("teamspawn_all")
-					spawnorigin = spawn:GetAbsOrigin()
+	for _, p in pairs(ents.GetAllPlayers()) do
+		if p:IsRealPlayer() then
+			p:SetCustomModel("") --sometimes ghost model gets stuck
+			p:SetAttributeValue("min respawn time", nil)
+			if wave == HUNT_WAVE then
+				local spawn = ents.FindByName("teamspawn_all")
+				local spawnorigin = spawn:GetAbsOrigin()
+				timer.Simple(2, function()
 					p:Teleport(spawnorigin)
+				end)
+			end
+			
+			--backup healbug remover
+			if p:InCond(TF_COND_HEALTH_BUFF) == 1 then 
+				local healer = p:GetConditionProvider(TF_COND_HEALTH_BUFF)
+				local medigun = healer:GetPlayerItemBySlot(1)
+				if medigun.m_hHealingTarget ~= p then
+					p:RemoveCond(TF_COND_HEALTH_BUFF)
 				end
-			else 
-				p:RemoveAllCallbacks() --make sure no odd callbacks are getting stuck on bots
-			end	
-			p:SetName("") --clear targetnames
-		end
-	end)
+			end
+		else
+			p:RemoveAllCallbacks() --make sure no odd callbacks are getting stuck on bots
+		end	
+		p:SetName("") --clear targetnames
+	end
+end
+
+function OnWaveSuccess(wave)
+	currentwave = 0
 end
 
 function OnPlayerDisconnected(player) 
@@ -125,27 +136,21 @@ end
 function SpecificPlayerConnected(player)
 	local handle = player:GetHandleIndex()
 
-	if players[handle] == nil then
-		players[handle] = {}
-		players[handle].entity = player
-		players[handle].reanimstate = false
-		players[handle].reanimentity = nil
-		players[handle].reanimcount = 0
-	end
+	players[handle] = {}
+	players[handle].entity = player
+	players[handle].reanimstate = false
+	players[handle].reanimentity = nil
+	players[handle].reanimcount = 0
 end
 
 local function Nothing()
 end
 
 function OnGameTick()
-	--medigunTick()
+	medigunTick()
 	if currentwave == HUNT_WAVE or currentwave == BOSS_WAVE then
 		SpecificWaveGameTick()
 	end
-end
-
-function OnWaveSuccess(wave)
-	currentwave = 0
 end
 
 function SpecificWaveGameTick()
@@ -158,12 +163,11 @@ function SpecificWaveGameTick()
 			--if ghost but doesn't have a reanim yet
 			CreateReanim(datatable)
 			BecomeGhost(p, datatable)
-		elseif datatable.reanimstate and datatable.reanimentity == nil then
+		elseif datatable.reanimstate and not datatable.reanimentity then
 			--if a reanim somehow gets destroyed, then force respawn the player
 			player:ForceRespawn()
 		elseif player:InCond(TF_COND_HALLOWEEN_GHOST_MODE) == 0 and player:IsAlive() then
 			--if alive/not ghost
-			--print("alive")
 			alive = alive + 1
 		end
 	end
@@ -238,11 +242,12 @@ function BecomeGhost(handle, datatable)
 	
 	--if revived
 	callbacks[handle].spawn = player:AddCallback(ON_SPAWN, function()
-		if datatable.reanimentity ~= nil then
+		if datatable.reanimentity then
 			datatable.reanimentity:Remove()
 			datatable.reanimcount = datatable.reanimcount + 1
 			--only punish if not freak accident
 		end
+		
 		--always do in case forcerespawned
 		datatable.reanimstate = false
 		datatable.reanimentity = nil
@@ -253,22 +258,19 @@ function BecomeGhost(handle, datatable)
 		player:SetAttributeValue("ignored by bots", nil)
 		player:RemoveCallback(callbacks[handle].spawn)
 		--player:RemoveCallback(callbacks[handle].keypressed)
+		
 		--reaggro mimic to player on revive
 		if currentwave == BOSS_WAVE then
 			local bothandle = FindMimickingBot(handle)
 			if bothandle then
-				local interruptstring = "interrupt_action -posent " .. player:GetName() .. " -lookposent " .. player:GetName() 
-					.. " -killlook -waituntildone -alwayslook"
-				--player targetname should still be set here
-				local bot = Entity(bothandle)
-				--print(interruptstring)
-				bot:BotCommand(interruptstring)
+				SetBotAggroOnPlayer(player, bothandle)
 			end
 		end
+		
 	end)
 end
 
-function FindMimickingBot(playerhandle) --this should be only fired if player is valid
+function FindMimickingBot(playerhandle) --this should be only fired if player is valid in the first place
 	for bothandle, pairedhandle in pairs(bots) do
 		if playerhandle == pairedhandle then
 			if Entity(bothandle):IsAlive() and IsValid(Entity(playerhandle)) then
@@ -276,6 +278,19 @@ function FindMimickingBot(playerhandle) --this should be only fired if player is
 			end
 		end
 	end
+end
+
+function SetBotAggroOnPlayer(player, bothandle)
+	local interruptstring = "interrupt_action -posent " .. player:GetName() .. " -lookposent " .. player:GetName() 
+		.. " -killlook -waituntildone -alwayslook"
+	local bot = Entity(bothandle)
+	local botPrimary = bot:GetPlayerItemBySlot(0)
+	
+	if botPrimary and botPrimary:GetClassname() == "tf_weapon_crossbow" then
+		interruptstring = interruptstring .. " -distance 1500"
+	end
+	--print(interruptstring)
+	bot:BotCommand(interruptstring)
 end
 
 function RemoveCallbacks(player, callbacks)
@@ -334,20 +349,16 @@ function MimicPlayers()
 			CopyMelee(bot, melee)
 		end
 		
-		p:SetName(p:GetPlayerName())
+		p:SetName(p:GetHandleIndex())
 		
 		if p:InCond(TF_COND_HALLOWEEN_GHOST_MODE) == 0 and p:IsAlive() then --don't aggro lock if player isn't alive
-			local interruptstring = "interrupt_action -posent " .. p:GetName() .. " -lookposent " .. p:GetName() 
-			.. " -killlook -waituntildone -alwayslook"
-			
-			--print(interruptstring)
-			bot:BotCommand(interruptstring)
+			SetBotAggroOnPlayer(p, bot:GetHandleIndex())
 		end
 		
 		for _, item in pairs(p:GetAllItems()) do
 			if item:IsWearable() then
 				local botitem = bot:GiveItem(item:GetItemName())
-				if botitem ~= nil then --some items fail
+				if botitem then --some items fail
 					CopyAttribute("attach particle effect", item, botitem, true)
 					CopyAttribute("set item tint RGB", item, botitem, true)
 					CopyAttribute("set item tint RGB 2", item, botitem, true) --i think this is for team color paints?
@@ -364,6 +375,7 @@ function MimicPlayers()
 		--pair bot handle to player handle
 		
 		bot:SetAttributeValue("max health additive bonus", perhp)
+		bot:SetAttributeValue("mod weapon blocks healing", 1)
 		bot.m_bIsMiniBoss = true
 	end
 	
