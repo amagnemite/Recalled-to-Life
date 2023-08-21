@@ -19,7 +19,7 @@ function medigunTick()
 				player:SetAttributeValue("no_attack", nil)
 			end)
 			isValid = false
-		elseif medigun.m_bAttacking == 0 or medigun.m_bHolstered == 1 or player:InCond(TF_COND_TAUNTING) == 1 then
+		elseif medigun.m_bAttacking == 0 or medigun.m_bHolstered == 1 or player:InCond(TF_COND_TAUNTING) then
 			ResetMedigun(medigun, medigunhandle)
 			isValid = false
 			--may want some way to check m_bHealing still
@@ -42,6 +42,7 @@ function medigunTick()
 	end
 end
 
+--removes vaccinator uber from bots
 local chargeDeployedCallback = AddEventCallback("player_chargedeployed", function(eventTable)
 	local medic = ents.GetPlayerByUserId(eventTable.userid)
 	local target = ents.GetPlayerByUserId(eventTable.targetid)
@@ -119,7 +120,7 @@ function BoughtMedibeam(damage, activator)
 						timers[name] = timer.Create(.014, function() --run a trace every .1s until we hit something or key is released
 							--print("hold timer")
 							if medigun.m_bHolstered == 0 and activator.m_bRageDraining == 0 
-								and activator:InCond(TF_COND_TAUNTING) == 0 then 	
+								and not activator:InCond(TF_COND_TAUNTING) then 	
 								
 								if medigun.m_hHealingTarget and medigun.m_hHealingTarget.m_iTeamNum == 2 then --healing a friendly
 									--print(activator:GetPlayerName() .. " " .. TickCount() .. " started healing, stopping tick")

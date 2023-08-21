@@ -839,7 +839,7 @@ WaveSchedule {
 		}
 	}
 	
-	Wave { //w4, hunt mode, $1250
+	Wave { //w5, hunt mode, $1250
 		InitWaveOutput {
 			Target altmode_prewave_relay
 			Action Trigger
